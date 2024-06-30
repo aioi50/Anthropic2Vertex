@@ -10,3 +10,9 @@ dist/
 .DS_Store
 Thumbs.db
 /auth/auth.json
+
+#replit file
+.cache
+.git
+.pythonlibs
+.upm

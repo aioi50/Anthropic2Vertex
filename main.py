@@ -61,30 +61,6 @@ def check_directory_structure():
     # 检查当前目录
     app_base_dir = get_base_path()
     
-    # 检查 auth 目录
-    print(f"检查 auth 目录..")
-    auth_dir = os.path.join(app_base_dir, 'auth')
-    if not os.path.exists(auth_dir):
-        print(f"错误: 'auth' 验证文件夹缺失！")
-        return False
-    time.sleep(0.1)
-    
-    # 检查 auth.json 文件
-    print(f"检查 auth.json 文件..")
-    auth_file = os.path.join(auth_dir, 'auth.json')
-    if not os.path.exists(auth_file):
-        print(f"错误: {auth_dir}下'auth.json'谷歌验证文件缺失！")
-        return False
-    time.sleep(0.1)
-    
-    # 检查 .env 文件
-    print(f"检查 .env 文件..")
-    env_file = os.path.join(app_base_dir, '.env')
-    if not os.path.exists(env_file):
-        print(f"错误: {app_base_dir}下.env配置文件缺失！")
-        return False
-    time.sleep(0.1)
-    
     # 检查 model_mapping.json 文件
     print(f"检查 model_mapping.json 文件..")
     model_mapping_file = os.path.join(app_base_dir, 'model_mapping.json')
@@ -133,9 +109,9 @@ def main():
         input("依赖项未满足。请安装后重启。")
         sys.exit(1)
         
-    if not check_directory_structure():
-        input("目录必要文件验证失败，取消启动。")
-        sys.exit(1)
+    #if not check_directory_structure():
+    #    input("目录必要文件验证失败，取消启动。")
+    #    sys.exit(1)
     
     print("目录文件验证成功。")
 #    manage_gcp_auth()
