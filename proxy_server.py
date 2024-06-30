@@ -53,7 +53,7 @@ with open('/dev/shm/auth.json', 'w') as f:
 
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.join(
     '/dev/shm', 'auth.json')
-hostaddr = '0.0.0.0' if is_docker else os.getenv('HOST', '127.0.0.1')
+hostaddr = '0.0.0.0' if is_docker else os.environ.get('host', '127.0.0.1')
 lsnport = int(os.environ.get('port', 5000))
 project_id = os.environ.get('project_id')
 region = os.environ.get('region')
