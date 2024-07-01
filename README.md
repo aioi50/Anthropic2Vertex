@@ -53,14 +53,16 @@
 **For Linux：**
 
   ```
-  wget --no-check-certificate --content-disposition https://github.com/TheValkyrja/Anthropic2Vertex/releases/latest/download/Anthropic2Vertex.zip
-  sudo apt-get install zip | unzip Anthropic2Vertex.zip -d Anthropic2Vertex
-  sudo rm -rf Anthropic2Vertex.zip #可选
+  wget --no-check-certificate --content-disposition "https://github.com/TheValkyrja/Anthropic2Vertex/releases/latest/download/Anthropic2Vertex-linux-$(uname -m).tar.gz"
+  tar -xzvf Anthropic2Vertex-linux-$(uname -m).tar.gz
+  ```
+  ```
+  sudo rm -rf Anthropic2Vertex-linux-$(uname -m).tar.gz #删除压缩包，可选
   ```
 
 **For Windows:**  
 
-前往[Release](https://github.com/TheValkyrja/Anthropic2Vertex/releases),下载[Anthropic2Vertex.zip](https://github.com/TheValkyrja/Anthropic2Vertex/releases/latest/download/Anthropic2Vertex.zip)  
+前往[Release](https://github.com/TheValkyrja/Anthropic2Vertex/releases),下载[Anthropic2Vertex.zip](https://github.com/TheValkyrja/Anthropic2Vertex/releases/latest/download/Anthropic2Vertex-windows-x86_64.zip)  
 并解压文件。
 
 </details>
