@@ -54,9 +54,21 @@ with open('/dev/shm/auth.json', 'w') as f:
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.join(
     '/dev/shm', 'auth.json')
 hostaddr = '0.0.0.0' if is_docker else os.environ.get('host', '127.0.0.1')
-lsnport = int(os.environ.get('port', 5000))
+
+if len(os.environ.get('host', '127.0.0.1')) == 0:
+    hostaddr = '127.0.0.1'
+
+if len(os.environ.get('port', '5000')) == 0:
+    lsnport = int(5000)
+else:
+    lsnport = int(os.environ.get('port', 5000))
+
+if len(os.environ.get('region', 'us-east5')) == 0:
+    region = 'us-east5'
+else:
+    region = os.environ.get('region','us-east5')
+    
 project_id = os.environ.get('project_id')
-region = os.environ.get('region')
 password = os.environ.get('password')
 
 # VertexAI 配置
