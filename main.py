@@ -8,6 +8,7 @@ import subprocess
 import colorama
 import pkg_resources
 import importlib.util
+import globalVar
 
 def check_requirements():
     if getattr(sys, 'frozen', False):
@@ -56,10 +57,18 @@ def get_base_path():
         # 如果是普通Python脚本
         return os.path.dirname(os.path.abspath(__file__))
 
-
 def check_directory_structure():
     # 检查当前目录
     app_base_dir = get_base_path()
+
+    # 检查json文件是否有效
+    print(f"检查 json文件是否有效..")
+    start_count = globalVar.accountdata.count("{")
+    end_count = globalVar.accountdata.count("}")
+    if start_count != end_count:
+        print(f"错误: 开始标志数量为 {start_count} ,结束标志数量为 {end_count} , 数量不匹配！")
+        return False
+    time.sleep(0.1)
     
     # 检查 model_mapping.json 文件
     print(f"检查 model_mapping.json 文件..")
@@ -109,9 +118,9 @@ def main():
         input("依赖项未满足。请安装后重启。")
         sys.exit(1)
         
-    #if not check_directory_structure():
-    #    input("目录必要文件验证失败，取消启动。")
-    #    sys.exit(1)
+    if not check_directory_structure():
+        input("目录必要文件验证失败，取消启动。")
+        sys.exit(1)
     
     print("目录文件验证成功。")
 #    manage_gcp_auth()

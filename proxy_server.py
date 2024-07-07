@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import globalVar
 from typing import Optional
 
 from anthropic import AnthropicVertex
@@ -34,23 +35,10 @@ def get_base_path():
 
 #os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = #os.path.join(get_base_path(), 'auth', 'auth.json')
 
-google_data = {
-    "type": os.environ['type'],
-    "project_id": os.environ['project_id'],
-    "private_key_id": os.environ['private_key_id'],
-    "private_key": os.environ['private_key'].replace("\\n", "\n"),
-    "client_email": os.environ['client_email'],
-    "client_id": os.environ['client_id'],
-    "auth_uri": os.environ['auth_uri'],
-    "token_uri": os.environ['token_uri'],
-    "auth_provider_x509_cert_url": os.environ['auth_provider_x509_cert_url'],
-    "client_x509_cert_url": os.environ['client_x509_cert_url'],
-    "universe_domain": os.environ['universe_domain']
-}
-json_data = json.dumps(google_data)
-with open('/dev/shm/auth.json', 'w') as f:
-    f.write(json_data)
 
+jsondata = []
+accountIndex = 0
+accountName = ""
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.join(
     '/dev/shm', 'auth.json')
 hostaddr = '0.0.0.0' if is_docker else os.environ.get('host', '127.0.0.1')
@@ -67,12 +55,46 @@ if len(os.environ.get('region', 'us-east5')) == 0:
     region = 'us-east5'
 else:
     region = os.environ.get('region','us-east5')
-    
-project_id = os.environ.get('project_id')
+
+if len(os.environ.get('counter', '0')) == 0:
+    timeToSwotch = int(0)
+else:
+    timeToSwotch = int(os.environ.get('counter', 0))
+
 password = os.environ.get('password')
+messageCount = 0
 
 # VertexAI 配置
-vertex_client = AnthropicVertex(project_id=project_id, region=region)
+vertex_client = AnthropicVertex(region=region)
+
+def loadAccountData():
+    start = 0
+    global jsondata
+    for index in range(globalVar.accountdata.count("{")):
+        jsondata.append(globalVar.accountdata[globalVar.accountdata.index("{", start):globalVar.accountdata.index("}", start)+1])
+        start = globalVar.accountdata.index("}",start)+1
+    changeActiveAccount(0)
+    
+
+def changeActiveAccount(index):
+    if index == len(jsondata):
+        index = 0
+    
+    jsfile = json.dumps(jsondata[index]).replace('\\"', '"').replace('"{','{').replace('}"','}')
+    with open('/dev/shm/auth.json', 'w') as f:
+        f.write(jsfile)
+    global accountIndex
+    global accountName
+    global vertex_client
+    accountIndex = index
+    starttemp = jsondata[index].index("project_id") + 11
+    starttemp2 = jsondata[index].index("gen-lang-client-")
+    accountName = jsondata[index][starttemp2:jsondata[index].index(",",starttemp)-1]
+    vertex_client = AnthropicVertex(project_id=accountName, region=region)
+    print(f"\033[32mINFO\033[0m:     Logged in \"{accountName}\".Index: {accountIndex}")
+    
+
+loadAccountData()
 
 # CORS 配置
 app.add_middleware(
@@ -111,6 +133,13 @@ async def proxy_request(request: Request, x_api_key: Optional[str] = Header(None
     if not check_auth(x_api_key):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
+    if timeToSwotch != 0:
+        global messageCount
+        messageCount += 1
+        if messageCount == timeToSwotch:
+            changeActiveAccount(accountIndex+1)
+            messageCount = 0
+    
     # 获取原始请求数据
     data = await request.json()
 
@@ -127,6 +156,7 @@ async def proxy_request(request: Request, x_api_key: Optional[str] = Header(None
             if key == 'model':
                 # 对模型名称进行转换
                 vertex_request[key] = vertex_model(value)
+                print(f"\033[32mINFO\033[0m:     Request Model: \"{vertex_model(value)}\"")
             else:
                 # 直接复制其他所有参数
                 vertex_request[key] = value
