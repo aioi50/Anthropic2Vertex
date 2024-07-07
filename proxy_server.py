@@ -126,6 +126,11 @@ def check_auth(api_key: Optional[str]) -> bool:
         return True
     return api_key and compare_digest(api_key, password)
 
+@app.get("/")
+async def ping():
+    Main = 'Anthropic2Vertex修改版 by zxcPandora'
+    index_msg = "<!DOCTYPE html>\\n<html>\\n<head>\\n<meta charset=\"utf-8\">\\n<script>\\nfunction copyToClipboard(text) {\\n  var textarea = document.createElement(\"textarea\");\\n  textarea.textContent = text;\\n  textarea.style.position = \"fixed\";\\n  document.body.appendChild(textarea);\\n  textarea.select();\\n  try {\\n    return document.execCommand(\"copy\");\\n  } catch (ex) {\\n    console.warn(\"Copy to clipboard failed.\", ex);\\n    return false;\\n  } finally {\\n    document.body.removeChild(textarea);\\n  }\\n}\\nfunction copyLink(event) {\\n  event.preventDefault();\\n  const url = new URL(window.location.href);\\n  const link = url.protocol + '//' + url.host + '/v1';\\n  copyToClipboard(link);\\n  alert('链接已复制: ' + link);\\n}\\n</script>\\n</head>\\n<body>\\n" + Main + "<br/><br/>完全开源、免费且禁止商用<br/><br/>点击复制反向代理: <a href=\"v1\" onclick=\"copyLink(event)\">Copy Link</a><br/>复制后填入 代理服务器 URL 中并选择你在Vertex中的已启用的claude模型（Claude API Key中随便填点什么，但不能为空）<br/><br/>教程与FAQ: <a href=\"https://rentry.org/zxcPandora_cloud_proxy\" target=\"FAQ\">Rentry</a> | <a href=\"https://github.com/TheValkyrja/Anthropic2Vertex\" target=\"FAQ\">Anthropic2Vertex原作者仓库</a><br/><br/><br/>❗警惕任何高风险cookie/伪api(25k cookie)购买服务，以及破坏中文AI开源共享环境倒卖免费资源抹去署名的群组（🈲黑名单：酒馆小二、AI新服务、浅睡(鲑鱼)、赛博女友制作人(青麈/overloaded/科普晓百生)🈲）\\n</body>\\n</html>"
+    return HTMLResponse(content = index_msg.replace("\\n", "\n").replace("\\", '').replace('\\"', '"'))
 
 @app.post("/v1/messages")
 async def proxy_request(request: Request, x_api_key: Optional[str] = Header(None)):
