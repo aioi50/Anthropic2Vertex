@@ -88,7 +88,7 @@ def changeActiveAccount(index):
     global vertex_client
     accountIndex = index
     starttemp = jsondata[index].index("project_id") + 11
-    starttemp2 = jsondata[index].index("gen-lang-client-")
+    starttemp2 = jsondata[index].index("\"",starttemp) + 1
     accountName = jsondata[index][starttemp2:jsondata[index].index(",",starttemp)-1]
     vertex_client = AnthropicVertex(project_id=accountName, region=region)
     print(f"\033[32mINFO\033[0m:     Logged in \"{accountName}\".Index: {accountIndex}")
