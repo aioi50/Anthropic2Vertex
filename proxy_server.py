@@ -2,8 +2,11 @@ import json
 import os
 import sys
 import globalVar
-from typing import Optional
+from typing import Optional, Union
 
+import vertexai
+from vertexai.generative_models import GenerativeModel
+import vertexai.preview.generative_models as generative_models
 from anthropic import AnthropicVertex
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, Request
@@ -91,6 +94,7 @@ def changeActiveAccount(index):
     starttemp2 = jsondata[index].index("\"",starttemp) + 1
     accountName = jsondata[index][starttemp2:jsondata[index].index(",",starttemp)-1]
     vertex_client = AnthropicVertex(project_id=accountName, region=region)
+    vertexai.init(project=accountName, location=region)
     print(f"\033[32mINFO\033[0m:     Logged in \"{accountName}\".Index: {accountIndex}")
     
 
@@ -131,6 +135,102 @@ async def ping():
     Main = 'Anthropic2Vertex修改版 by zxcPandora'
     index_msg = "<!DOCTYPE html>\\n<html>\\n<head>\\n<meta charset=\"utf-8\">\\n<script>\\nfunction copyToClipboard(text) {\\n  var textarea = document.createElement(\"textarea\");\\n  textarea.textContent = text;\\n  textarea.style.position = \"fixed\";\\n  document.body.appendChild(textarea);\\n  textarea.select();\\n  try {\\n    return document.execCommand(\"copy\");\\n  } catch (ex) {\\n    console.warn(\"Copy to clipboard failed.\", ex);\\n    return false;\\n  } finally {\\n    document.body.removeChild(textarea);\\n  }\\n}\\nfunction copyLink(event) {\\n  event.preventDefault();\\n  const url = new URL(window.location.href);\\n  const link = url.protocol + '//' + url.host + '/v1';\\n  copyToClipboard(link);\\n  alert('链接已复制: ' + link);\\n}\\n</script>\\n</head>\\n<body>\\n" + Main + "<br/><br/>完全开源、免费且禁止商用<br/><br/>点击复制反向代理: <a href=\"v1\" onclick=\"copyLink(event)\">Copy Link</a><br/>复制后填入 代理服务器 URL 中并选择你在Vertex中的已启用的claude模型（Claude API Key中随便填点什么，但不能为空）<br/><br/>教程与FAQ: <a href=\"https://rentry.org/zxcPandora_cloud_proxy\" target=\"FAQ\">Rentry</a> | <a href=\"https://github.com/TheValkyrja/Anthropic2Vertex\" target=\"FAQ\">Anthropic2Vertex原作者仓库</a><br/><br/><br/>❗警惕任何高风险cookie/伪api(25k cookie)购买服务，以及破坏中文AI开源共享环境倒卖免费资源抹去署名的群组（🈲黑名单：酒馆小二、AI新服务、浅睡(鲑鱼)、赛博女友制作人(青麈/overloaded/科普晓百生)🈲）\\n</body>\\n</html>"
     return HTMLResponse(content = index_msg.replace("\\n", "\n").replace("\\", '').replace('\\"', '"'))
+
+def translateResponseToSillytavernFormat(text,usage_metadata):
+    responseData = {
+        "candidates": [{
+            "content": {
+                "parts": [{
+                    "text": text
+                }],
+                "role": "model"
+            },
+            "finishReason": "STOP",
+            "index": 0
+        }],
+        "usageMetadata": {
+            "promptTokenCount": usage_metadata.prompt_token_count,
+            "candidatesTokenCount": usage_metadata.candidates_token_count,
+            "totalTokenCount": usage_metadata.total_token_count
+        }
+    }
+    return responseData
+
+safety_settings = {
+    generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH: generative_models.HarmBlockThreshold.BLOCK_NONE,
+    generative_models.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: generative_models.HarmBlockThreshold.BLOCK_NONE,
+    generative_models.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: generative_models.HarmBlockThreshold.BLOCK_NONE,
+    generative_models.HarmCategory.HARM_CATEGORY_HARASSMENT: generative_models.HarmBlockThreshold.BLOCK_NONE
+}
+
+@app.post("/v1beta/models/{requestModel}")
+async def gemini_proxy(request: Request, requestModel: str ,key: str,alt:Union[str,None] = None):
+    # 密码验证
+    if not check_auth(key):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    if timeToSwotch != 0:
+        global messageCount
+        messageCount += 1
+        if messageCount == timeToSwotch:
+            changeActiveAccount(accountIndex+1)
+            messageCount = 0
+        
+    data = await request.json()
+    #print("Original request:")
+    #print(data)
+
+    #请求解析
+    sendModel = requestModel.split(":")[0].replace("-latest", "-001")
+    stream = alt or requestModel.split(":")[1] == "streamGenerateContent"
+    contents = data.get('contents')
+    generationConfig =  data.get('generationConfig')
+    system_instruction = data.get('system_instruction')['parts']['text'] if data.get('system_instruction') else None
+
+    #对模型配置选项进行转换
+    gemini_config = {}
+    for key, value in generationConfig.items():
+        if key == 'stopSequences':
+            gemini_config["stop_sequences"] = value
+        elif key == 'candidateCount':
+            gemini_config["candidate_count"] = value
+        elif key == 'maxOutputTokens':
+            gemini_config["max_output_tokens"] = value
+        elif key == 'topP':
+            gemini_config["top_p"] = value
+        elif key == 'topK':
+            gemini_config["top_k"] = value
+        elif key == 'responseMimeType':
+            gemini_config["response_mime_type"] = value
+        elif key == 'responseSchema':
+            gemini_config["response_schema"] = value
+        else:
+            gemini_config[key] = value
+
+    # 模型配置
+    aiModel = GenerativeModel(model_name=sendModel, system_instruction=system_instruction)
+    print(f"\033[32mINFO\033[0m:     Request Model: \"{sendModel}\"")
+
+    try: 
+        # 发送请求到 VertexAI
+        # 检查是否为流式请求
+        if stream:
+            def generate():
+                for chunk in aiModel.generate_content(json.dumps(contents), generation_config=gemini_config, safety_settings=safety_settings, stream=True):
+                    response = f"data: {json.dumps(translateResponseToSillytavernFormat(chunk.text,chunk.usage_metadata))}\n\n"
+                    #print(f"{response}")
+                    yield response
+            
+            return StreamingResponse(generate(),
+                 media_type='text/event-stream',
+                 headers={'X-Accel-Buffering': 'no'})
+        else:
+            response = aiModel.generate_content(json.dumps(contents), generation_config=gemini_config, safety_settings=safety_settings, stream=False)
+            #print(response)
+            return JSONResponse(content=translateResponseToSillytavernFormat(response.text,response.usage_metadata), status_code=200)
+    except Exception as e:
+        print(str(e))
+        return JSONResponse(content={"error": str(e)}, status_code=500)
 
 @app.post("/v1/messages")
 async def proxy_request(request: Request, x_api_key: Optional[str] = Header(None)):
