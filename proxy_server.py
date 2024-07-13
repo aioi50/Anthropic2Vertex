@@ -191,6 +191,9 @@ async def gemini_proxy(request: Request, requestModel: str ,key: str,alt:Union[s
     gemini_config = {}
     for key, value in generationConfig.items():
         if key == 'stopSequences':
+            # 确保stopSequences值不包含空字符串
+            if any(not seq for seq in value):
+                value = [seq for seq in value if seq]
             gemini_config["stop_sequences"] = value
         elif key == 'candidateCount':
             gemini_config["candidate_count"] = value
