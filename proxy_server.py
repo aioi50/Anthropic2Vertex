@@ -83,7 +83,7 @@ def changeActiveAccount(index):
     if index == len(jsondata):
         index = 0
     
-    jsfile = json.dumps(jsondata[index]).replace('\\"', '"').replace('"{','{').replace('}"','}')
+    jsfile = json.dumps(jsondata[index]).replace('\\"', '"').replace('"{', '{').replace('}"', '}').replace("\\n ","\n").replace("\\n}","\n}").replace("\\\\n",r"\n")
     with open('/dev/shm/auth.json', 'w') as f:
         f.write(jsfile)
     global accountIndex

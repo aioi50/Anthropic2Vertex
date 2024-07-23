@@ -65,8 +65,8 @@ def check_directory_structure():
     print(f"检查 json文件是否有效..")
     start_count = globalVar.accountdata.count("{")
     end_count = globalVar.accountdata.count("}")
-    if start_count != end_count:
-        print(f"错误: 开始标志数量为 {start_count} ,结束标志数量为 {end_count} , 数量不匹配！")
+    if start_count == 0 or end_count == 0 or start_count != end_count:
+        print(f"错误: 开始标志数量为 {start_count} ,结束标志数量为 {end_count} ,json文件验证失败！")
         return False
     time.sleep(0.1)
     
